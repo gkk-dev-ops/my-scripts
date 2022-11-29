@@ -1,12 +1,28 @@
 #!/usr/bin/python3
 
 import os
+import sys
 import shutil
+import json
 
 HOME = os.getenv('HOME')
 PRIV_KEY = "id_rsa"
 PUB_KEY = "id_rsa.pub"
+BLACKLISTED_FILES = 'blacklist.json'
 
+def usage():
+    print("""
+    changeKeys.py [keys directory name]
+
+    To change ssh keys in your .ssh directory you can just run the script and
+    follow steps listed in prompt or run it with name of subdirectory where
+    target keys are stored.
+    """)
+
+def blacklisted_files() -> list[str]:
+    with open(BLACKLISTED_FILES, 'r') as f:
+        data = json.load(f)
+    return data['blacklist']
 
 def delete_keys():
     """Deletes keys from current directory"""
@@ -34,7 +50,7 @@ def userPrompt():
     """Returns files to be copied and prompts user"""
     print("You may want to use:")
     for file in os.listdir(os.getcwd()):
-        if file in [".git", "known_hosts", "changeKeys.py", "config", "166907050426000", "known_hosts.old", "id_rsa", "id_rsa.pub", '.DS_Store']:
+        if file in blacklisted_files():
             continue
         print(f"{file}")
 
@@ -52,4 +68,10 @@ def main():
 
 if __name__ == "__main__":
     os.chdir(os.path.join(HOME,'.ssh'))
-    main()
+    if len(sys.argv) == 2:
+        delete_keys()
+        copy_keys(sys.argv[1])
+    elif len(sys.argv) > 2:
+        usage()
+    else:
+        main()

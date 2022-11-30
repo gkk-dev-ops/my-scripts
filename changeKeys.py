@@ -4,6 +4,8 @@ import os
 import sys
 import shutil
 import json
+import subprocess
+import argparse
 
 HOME = os.getenv('HOME')
 PRIV_KEY = "id_rsa"
@@ -14,9 +16,7 @@ def usage():
     print("""
     changeKeys.py [keys directory name]
 
-    To change ssh keys in your .ssh directory you can just run the script and
-    follow steps listed in prompt or run it with name of subdirectory where
-    target keys are stored.
+    
     """)
 
 def blacklisted_files() -> list[str]:
@@ -58,20 +58,44 @@ def userPrompt():
     return dir
 
 
-def main():
-    dir = userPrompt()
-    if dir == "":
-        return "No keys specified"
-    delete_keys()
-    copy_keys(dir)
+def generate_keys_catalog(key_catalog):
+    os.mkdir(key_catalog)
+    ssh_gen_cmd = ['ssh-keygen', '-b', '2048', '-t', 'rsa', '-f',
+                os.path.join(HOME,'.ssh', key_catalog, PRIV_KEY),
+                '-q',  '-N', '""']
+    subprocess.run(ssh_gen_cmd)
 
+
+def guide_user_change_keys():
+    key_catalog = userPrompt()
+    if key_catalog not in os.listdir(os.getcwd()):
+        print("Specified catalog does not exist.")
+        sys.exit(3)
+    change_keys(key_catalog)
+
+def change_keys(key_catalog):
+    delete_keys()
+    copy_keys(key_catalog)
+
+def main():
+    parser = argparse.ArgumentParser(
+            description="""
+    To change ssh keys in your .ssh directory you can just run the script and
+    follow steps listed in prompt or run it with name of subdirectory where
+    target keys are stored.
+            """)
+    parser.add_argument('-ck', '--change-keys', dest='keys_to_be_changed', help='keys catalog to change')
+    parser.add_argument('-ac', '--add-catalog', dest='add_catalog', help='add new catalog for storing ssh keys')
+    args = parser.parse_args()
+    if args.keys_to_be_changed:
+        change_keys(args.keys_to_be_changed)
+    if args.add_catalog:
+        generate_keys_catalog(args.add_catalog)
 
 if __name__ == "__main__":
     os.chdir(os.path.join(HOME,'.ssh'))
-    if len(sys.argv) == 2:
-        delete_keys()
-        copy_keys(sys.argv[1])
-    elif len(sys.argv) > 2:
-        usage()
-    else:
+    
+    if len(sys.argv) > 1:
         main()
+    else:
+        guide_user_change_keys()

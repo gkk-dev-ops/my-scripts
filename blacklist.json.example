@@ -1,4 +1,5 @@
-// Example of files you'd like to ommit by changeKeys scripts
+// Example of files you'd like to ommit by changeKeys scripts. File should be
+// stored in $HOME/.ssh
 {
     "blacklist": [
         "known_hosts",
